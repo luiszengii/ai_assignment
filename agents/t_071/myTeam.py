@@ -17,7 +17,10 @@ class myAgent(Agent):
         # self.best_action = None
     
     def SelectAction(self,actions,game_state):
-        root = Node(self, self.current_agent_index, self.current_agent_index, game_state)
+        # color info
+        self.agent_colors = game_state.agent_colors
+
+        root = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
 
         # start a timer of 0.8s for simulation
         try:
@@ -34,7 +37,10 @@ class myAgent(Agent):
 
 
 class Node():
-    def __init__(self, myAgent_id, curr_player_id, current_state, win_count=0, visited_count=0, parent_node=None, child_nodes=[], actionTaken = None):
+    def __init__(self, myAgent_id, curr_player_id, current_state, win_count=0, visited_count=0, parent_node=None, child_nodes=[], actionTaken = None, validPos = None, agent_colors=None):
+        self.current_agent_index = myAgent_id
+        self.num_of_agent = 2
+        self.validPos = validPos
         self.myAgent_id = myAgent_id
         self.player_id = curr_player_id
         self.win_count = win_count
@@ -43,6 +49,7 @@ class Node():
         self.child_nodes = child_nodes
         self.current_state = current_state
         self.actionTaken = actionTaken
+        self.agent_colors = agent_colors
 
     # a complete select&expand&simulate&back propagation, a looped in the choose best action method
     def MCTS(self):
@@ -58,9 +65,11 @@ class Node():
     def selection(self):
         # if the root has not been expanded(no child), select the root itself and then proceed to expand
         if len(self.child_nodes) == 0:
+            print("select ssssssssssssssssssssssssssssssssssssss")
             return self
         else:
-            max_UCT = 0
+            print(len(self.child_nodes))
+            max_UCT = -1
             target_node = None
             for child in self.child_nodes:
                 if UCT(child) > max_UCT:
@@ -72,12 +81,13 @@ class Node():
         all_actions = ReversiGameRule.getLegalActions(self, game_state=self.current_state, agent_id=self.player_id)
         for action in all_actions:
             next_state = ReversiGameRule.generateSuccessor(self, self.current_state, action, (self.player_id+1)%2)
-            new_child = Node(self.myAgent_id,(self.player_id+1)%2, next_state, parent_node=self, actionTaken=action)
+            new_child = Node(self.myAgent_id,(self.player_id+1)%2, next_state, parent_node=self, actionTaken=action, validPos=self.validPos, agent_colors=self.agent_colors)
             self.child_nodes.append(new_child)
 
     def random_result(self):
         # if the game ends at this state(action), return the winner's id, -1 if tie
-        if ReversiGameRule.getLegalActions(self, self.current_state, self.player_id) == "Pass" and ReversiGameRule.getLegalActions(self, self.current_state, (self.player_id+1)%2) == "Pass":
+        if ReversiGameRule.getLegalActions(self, self.current_state, self.player_id) == ["Pass"] and ReversiGameRule.getLegalActions(self, self.current_state, (self.player_id+1)%2) == ["Pass"]:
+            print("tsetsesestsets------------------")
             selfScore = ReversiGameRule.calScore(self, self.current_state, self.player_id)
             opponentScore = ReversiGameRule.calScore(self, self.current_state, (self.player_id+1)%2)
             if selfScore > opponentScore:
@@ -91,7 +101,7 @@ class Node():
         else:
             action = random.choice(ReversiGameRule.getLegalActions(self, self.current_state, self.player_id))
             next_state = ReversiGameRule.generateSuccessor(self, self.current_state, action, self.player_id)
-            new_node = Node(self.myAgent_id, (self.player_id+1)%2, next_state, parent_node=self)
+            new_node = Node(self.myAgent_id, (self.player_id+1)%2, next_state, parent_node=self, validPos=self.validPos, agent_colors=self.agent_colors)
             return new_node.random_result()
 
     def simulation(self):
