@@ -16,7 +16,35 @@ class myAgent(Agent):
         # self.best_action = None
     
     def SelectAction(self,actions,game_state):
-        return random.choice(actions)
+        # start a timer of 1s for simulation
+
+
+
+        # proceed a MCTS
+        # 1. create a root MCT Node 
+        root = Node(self.current_agent_index, self.current_agent_index, game_state)
+
+        # 2. select the leaf node with highest UCT
+        target_node = root.select()
+
+        # 3. expand the target node
+        target_node = 
+
+
+
+        return
+        
+
+# from interruptingcow import timeout
+# try:
+#     with timeout(60*5, exception=RuntimeError):
+#         while True:
+#             test = 0
+#             if test == 5:
+#                 break
+#             test = test - 1
+# except RuntimeError:
+#     pass
 
 class Node():
     def __init__(self, myAgent_id, curr_player_id, current_state, win_count=0, visited_count=0, parent_node=None, child_nodes=[]):
@@ -29,6 +57,7 @@ class Node():
         self.current_state = current_state
 
     def selection(self):
+        # if the root has not been expanded(no child), select the root itself and then proceed to expand
         if len(self.child_nodes) == 0:
             return self
         else:
@@ -46,7 +75,6 @@ class Node():
             next_state = ReversiGameRule.generateSuccessor(self, target_node.current_state, action, (target_node.player_id+1)%2)
             new_child = Node(self.myAgent_id,(target_node.player_id+1)%2, next_state, parent_node=target_node)
             target_node.child_nodes.append(new_child)
-
 
     def random_result(self):
         # if the game ends at this state(action), return the winner's id, -1 if tie
@@ -70,9 +98,14 @@ class Node():
     def simulation(self):
         for child in self.child_nodes:
             child.visited_count += 1
-            # our agent wins
+            # if our agent wins, add child's win count and back propagation
             if child.random_result() == child.myAgent_id or child.random_result() == -1:
                 child.win_count += 1
+                child.backPropagation(True)
+            # if our agent lose, back propagation
+            else:
+                child.backPropagation(False)
+
 
     # called by the child that finised a simulation, updates all parents' win/visit count
     def backPropagation(self, win: boolean):
@@ -87,9 +120,7 @@ class Node():
 
         return self.parent_node.backPropagation(win)
                 
-    
-
 
 def UCT(node: Node):
     value = (node.win_count / node.visited_count) + (1.3 * sqrt(node.parent_node.visited_count/node.visited_count))
-
+    return value
