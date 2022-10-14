@@ -51,7 +51,7 @@ class ReversiGameRule(GameRule):
         if action == "Pass":
             return state
         else:
-            next_state = copy.deepcopy(state)
+            next_state = copy.deepcopy(state)            
             update_color = self.agent_colors[agent_id]
             next_state.board[action[0]][action[1]] = update_color
             # iterate over all 8 directions and check pieces that require updates

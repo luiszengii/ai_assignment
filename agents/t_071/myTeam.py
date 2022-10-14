@@ -1,4 +1,4 @@
-from cmath import sqrt
+import numpy as np
 from contextlib import nullcontext
 from multiprocessing import parent_process
 from xmlrpc.client import boolean
@@ -6,6 +6,7 @@ from template import Agent
 import random
 from Reversi.reversi_model import ReversiGameRule
 from Reversi.reversi_utils import Cell,filpColor,boardToString,countScore, GRID_SIZE
+import func_timeout
 
 class myAgent(Agent):
     def __init__(self,_id):
@@ -16,38 +17,24 @@ class myAgent(Agent):
         # self.best_action = None
     
     def SelectAction(self,actions,game_state):
-        # start a timer of 1s for simulation
+        root = Node(self, self.current_agent_index, self.current_agent_index, game_state)
 
+        # start a timer of 0.8s for simulation
+        try:
+            func_timeout.func_timeout(0.8, root.MCTS())
+        except func_timeout.FunctionTimedOut:
+            bestWinRate = 0
+            bestAction = None
+            for child in root.child_nodes:
+                winRate = child.win_count/child.visited_count
+                if winRate > bestWinRate:
+                    bestWinRate = winRate
+                    bestAction = child.actionTaken
+            return bestAction
 
-
-        # proceed a MCTS
-        # 1. create a root MCT Node 
-        root = Node(self.current_agent_index, self.current_agent_index, game_state)
-
-        # 2. select the leaf node with highest UCT
-        target_node = root.select()
-
-        # 3. expand the target node
-        target_node = 
-
-
-
-        return
-        
-
-# from interruptingcow import timeout
-# try:
-#     with timeout(60*5, exception=RuntimeError):
-#         while True:
-#             test = 0
-#             if test == 5:
-#                 break
-#             test = test - 1
-# except RuntimeError:
-#     pass
 
 class Node():
-    def __init__(self, myAgent_id, curr_player_id, current_state, win_count=0, visited_count=0, parent_node=None, child_nodes=[]):
+    def __init__(self, myAgent_id, curr_player_id, current_state, win_count=0, visited_count=0, parent_node=None, child_nodes=[], actionTaken = None):
         self.myAgent_id = myAgent_id
         self.player_id = curr_player_id
         self.win_count = win_count
@@ -55,7 +42,19 @@ class Node():
         self.parent_node = parent_node
         self.child_nodes = child_nodes
         self.current_state = current_state
+        self.actionTaken = actionTaken
 
+    # a complete select&expand&simulate&back propagation, a looped in the choose best action method
+    def MCTS(self):
+        while True:
+            # 1. select the leaf node with highest UCT
+            target_node = self.selection()
+            # 2. expand the target node
+            target_node.expand()
+            # 3. simulation
+            target_node.simulation()
+
+    # find the leaf of current tree with highest UCT
     def selection(self):
         # if the root has not been expanded(no child), select the root itself and then proceed to expand
         if len(self.child_nodes) == 0:
@@ -69,12 +68,12 @@ class Node():
                     target_node = child
             return target_node.selection()
 
-    def expand(self, target_node):
-        all_actions = ReversiGameRule.getLegalActions(self, game_state=target_node.current_state, agent_id=target_node.player_id)
+    def expand(self):
+        all_actions = ReversiGameRule.getLegalActions(self, game_state=self.current_state, agent_id=self.player_id)
         for action in all_actions:
-            next_state = ReversiGameRule.generateSuccessor(self, target_node.current_state, action, (target_node.player_id+1)%2)
-            new_child = Node(self.myAgent_id,(target_node.player_id+1)%2, next_state, parent_node=target_node)
-            target_node.child_nodes.append(new_child)
+            next_state = ReversiGameRule.generateSuccessor(self, self.current_state, action, (self.player_id+1)%2)
+            new_child = Node(self.myAgent_id,(self.player_id+1)%2, next_state, parent_node=self, actionTaken=action)
+            self.child_nodes.append(new_child)
 
     def random_result(self):
         # if the game ends at this state(action), return the winner's id, -1 if tie
@@ -122,5 +121,5 @@ class Node():
                 
 
 def UCT(node: Node):
-    value = (node.win_count / node.visited_count) + (1.3 * sqrt(node.parent_node.visited_count/node.visited_count))
+    value = (node.win_count / node.visited_count) + (1.3 * np.sqrt(node.parent_node.visited_count/node.visited_count))
     return value
