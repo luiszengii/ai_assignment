@@ -17,25 +17,70 @@ class myAgent(Agent):
         self.current_agent_index = _id
         self.num_of_agent = 2
         self.validPos = ReversiGameRule._validPos(self)
-        # self.best_action = None
+        self.rootNode = None
+
+    def getCurrentRoot(self, game_state):
+        if self.rootNode == None:
+            self.rootNode = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
+        else:
+            target_child = None
+            if len(self.rootNode.child_nodes) == 0:
+                opp_actions = ReversiGameRule.getLegalActions(self, self.rootNode.current_state, self.rootNode.player_id)
+                for action in opp_actions:
+                    next_state = ReversiGameRule.generateSuccessor(self, self.rootNode.current_state, action, self.rootNode.player_id)
+                    same_state = True
+                    for x in self.validPos:
+                        if next_state.getCell(x) != game_state.getCell(x):
+                            same_state = False
+                            break
+                    if same_state:
+                        target_child = Node(self.rootNode.myAgent_id,(self.rootNode.player_id+1)%2, next_state, parent_node=None, actionTaken=action, validPos=self.rootNode.validPos, agent_colors=self.rootNode.agent_colors)
+                        break
+                
+                self.rootNode = target_child
+            else:
+                for child in self.rootNode.child_nodes:
+                    same_state = True
+                    for x in self.validPos:
+                        if child.current_state.getCell(x) != game_state.getCell(x):
+                            same_state = False
+                            break
+                    if same_state:
+                        target_child = child
+                        break
+                
+                self.rootNode = target_child
+                self.rootNode.parent_node = None
+
+
     
     def SelectAction(self,actions,game_state):
         # color info
         self.agent_colors = game_state.agent_colors
-
-        root = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
+        self.getCurrentRoot(game_state)
 
         # iterate MCTS for 3 times (for debugging)
         for i in range(3):
-            root.MCTS()
+            self.rootNode = self.rootNode.MCTS()
+        
         # return the action
         bestWinRate = 0
         bestAction = None
-        for child in root.child_nodes:
+        next_root = None
+
+        # for child in self.rootNode.child_nodes:
+        #     if child.actionTaken == self.rootNode.actionTaken:
+                
+
+        for child in self.rootNode.child_nodes:
             winRate = child.win_count/child.visited_count
-            if winRate > bestWinRate:
+            if winRate >= bestWinRate:
                 bestWinRate = winRate
                 bestAction = child.actionTaken
+                next_root = child
+        self.rootNode = next_root
+
+        # print('action', self.rootNode.player_id, self.rootNode.current_agent_index)
         print("NEXT ACTION: ")
         print(bestAction)
         return bestAction
@@ -78,6 +123,7 @@ class Node():
         target_node.expand()
         # 3. simulation
         target_node.simulation()
+        return self
 
     # find the leaf of current tree with highest UCT
     def selection(self):
@@ -85,7 +131,6 @@ class Node():
         if len(self.child_nodes) == 0:
             return self
         else:
-            print(len(self.child_nodes), self.actionTaken, self.parent_node)
             max_UCT = -1
             target_node = None
             for child in self.child_nodes:
@@ -97,7 +142,7 @@ class Node():
     def expand(self):
         all_actions = ReversiGameRule.getLegalActions(self, game_state=self.current_state, agent_id=self.player_id)
         for action in all_actions:
-            next_state = ReversiGameRule.generateSuccessor(self, self.current_state, action, (self.player_id+1)%2)
+            next_state = ReversiGameRule.generateSuccessor(self, self.current_state, action, self.player_id)
             new_child = Node(self.myAgent_id,(self.player_id+1)%2, next_state, parent_node=self, actionTaken=action, validPos=self.validPos, agent_colors=self.agent_colors)
             self.child_nodes.append(new_child)
 

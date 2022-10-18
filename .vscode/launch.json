@@ -4,6 +4,9 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+
+
 
         {
             "name": "Python: general_game_runner.py",
@@ -12,7 +15,7 @@
             "program": "general_game_runner.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args" : ["-a", "agents.t_071.myTeam", "-p", "-q"]
+            "args" : ["-a", "agents.t_071.MCTS", "-p", "-q", "-t"]
         }
     ]
 }
