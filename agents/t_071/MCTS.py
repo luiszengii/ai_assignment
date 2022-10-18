@@ -60,7 +60,7 @@ class myAgent(Agent):
         self.getCurrentRoot(game_state)
 
         # iterate MCTS for 3 times (for debugging)
-        for i in range(3):
+        for i in range(2):
             self.rootNode = self.rootNode.MCTS()
         
         # return the action
