@@ -1,4 +1,3 @@
-import winreg
 import numpy as np
 from contextlib import nullcontext
 from multiprocessing import parent_process
@@ -19,46 +18,74 @@ class myAgent(Agent):
         self.num_of_agent = 2
         self.validPos = ReversiGameRule._validPos(self)
         self.rootNode = None
-        # self.best_action = None
+
+    def getCurrentRoot(self, game_state):
+        if self.rootNode == None:
+            self.rootNode = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
+        else:
+            target_child = None
+            if len(self.rootNode.child_nodes) == 0:
+                opp_actions = ReversiGameRule.getLegalActions(self, self.rootNode.current_state, self.rootNode.player_id)
+                for action in opp_actions:
+                    next_state = ReversiGameRule.generateSuccessor(self, self.rootNode.current_state, action, self.rootNode.player_id)
+                    same_state = True
+                    for x in self.validPos:
+                        if next_state.getCell(x) != game_state.getCell(x):
+                            same_state = False
+                            break
+                    if same_state:
+                        target_child = Node(self.rootNode.myAgent_id,(self.rootNode.player_id+1)%2, next_state, parent_node=None, actionTaken=action, validPos=self.rootNode.validPos, agent_colors=self.rootNode.agent_colors)
+                        break
+                
+                self.rootNode = target_child
+            else:
+                for child in self.rootNode.child_nodes:
+                    same_state = True
+                    for x in self.validPos:
+                        if child.current_state.getCell(x) != game_state.getCell(x):
+                            same_state = False
+                            break
+                    if same_state:
+                        target_child = child
+                        break
+                
+                self.rootNode = target_child
+                self.rootNode.parent_node = None
+
+
     
     def SelectAction(self,actions,game_state):
         # color info
         self.agent_colors = game_state.agent_colors
+        self.getCurrentRoot(game_state)
 
-        if self.rootNode == None:
-            self.rootNode = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
-
-        for child in self.rootNode.child_nodes:
-            if child.current_state == game_state:
-                self.rootNode = child
-                self.rootNode.parent_node = None
-                break
-
-# ------------------------DEBUGGING---------------------------------------
-        # iterate MCTS for 3 times
-        for i in range(3):
-            self.rootNode.MCTS()
+        # iterate MCTS for 3 times (for debugging)
+        for i in range(2):
+            self.rootNode = self.rootNode.MCTS()
+        
         # return the action
         bestWinRate = 0
         bestAction = None
-        bestRoot = None
+        next_root = None
+
+        # for child in self.rootNode.child_nodes:
+        #     if child.actionTaken == self.rootNode.actionTaken:
+                
+
         for child in self.rootNode.child_nodes:
             winRate = child.win_count/child.visited_count
             if winRate >= bestWinRate:
                 bestWinRate = winRate
                 bestAction = child.actionTaken
-                bestRoot = child
-        
-        # set the best node as next root node
-        self.rootNode = bestRoot
-        self.rootNode.parent_node = None
+                next_root = child
+        self.rootNode = next_root
 
+        # print('action', self.rootNode.player_id, self.rootNode.current_agent_index)
         print("NEXT ACTION: ")
         print(bestAction)
         return bestAction
 
 
-# --------------------ACTUAL----------------------
         # start a timer of 0.8s for simulation
         # try:
         #     func_timeout.func_timeout(800, root.MCTS())
@@ -96,6 +123,7 @@ class Node():
         target_node.expand()
         # 3. simulation
         target_node.simulation()
+        return self
 
     # find the leaf of current tree with highest UCT
     def selection(self):
@@ -103,7 +131,6 @@ class Node():
         if len(self.child_nodes) == 0:
             return self
         else:
-            # print(len(self.child_nodes), self.actionTaken, self.parent_node)
             max_UCT = -1
             target_node = None
             for child in self.child_nodes:
@@ -164,5 +191,5 @@ class Node():
             return self.parent_node.backPropagation(win)
 
 def UCT(node: Node):
-    value = (node.win_count / node.visited_count) + (1.3 * np.sqrt(np.log(node.parent_node.visited_count)/node.visited_count))
+    value = (node.win_count / node.visited_count) + (1.3 * np.sqrt(node.parent_node.visited_count/node.visited_count))
     return value

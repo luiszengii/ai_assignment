@@ -5,6 +5,9 @@
     "version": "0.2.0",
     "configurations": [
         
+
+
+
         {
             "name": "Python: general_game_runner.py",
             "type": "python",
@@ -12,7 +15,7 @@
             "program": "general_game_runner.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args" : ["-a", "agents.t_071.myTeam", "-p", "-q", "-w", "5"]
+            "args" : ["-a", "agents.t_071.MCTS", "-p", "-q", "-t"]
         }
     ]
 }
