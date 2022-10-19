@@ -58,22 +58,49 @@ class myAgent(Agent):
 
         self.getCurrentRoot(game_state)
 
-        # iterate MCTS for 3 times
-        if isAtFirstMove:
-            for i in range(10):
-                self.rootNode = self.rootNode.MCTS()
-        else:
-            for i in range(2):
-                self.rootNode = self.rootNode.MCTS()
+        # # iterate MCTS for 3 times
+        # if isAtFirstMove:
+        #     for i in range(10):
+        #         self.rootNode = self.rootNode.MCTS()
+        # else:
+        #     for i in range(2):
+        #         self.rootNode = self.rootNode.MCTS()
         
-        # return the action
+        # # return the action
+        # bestWinRate = 0
+        # bestAction = None
+        # next_root = None
+                
+        # for child in self.rootNode.child_nodes:
+        #     if child.visited_count == 1:
+        #         pass
+        #     winRate = child.win_count/child.visited_count
+        #     if winRate >= bestWinRate:
+        #         bestWinRate = winRate
+        #         bestAction = child.actionTaken
+        #         next_root = child
+
+        # print("MCTS next move:")
+        # print(bestAction)
+        # self.rootNode = next_root
+        # return bestAction
+
+
+        # start a timer of 0.8s for simulation
+        try:
+            if isAtFirstMove:
+                func_timeout.func_timeout(14.8, self.rootNode.MCTS)
+            else:    
+                func_timeout.func_timeout(0.8, self.rootNode.MCTS)
+            print("MCTS ended")
+        except:
+            print("time out")
+
         bestWinRate = 0
         bestAction = None
         next_root = None
                 
         for child in self.rootNode.child_nodes:
-            if child.visited_count == 1:
-                pass
             winRate = child.win_count/child.visited_count
             if winRate >= bestWinRate:
                 bestWinRate = winRate
@@ -84,28 +111,6 @@ class myAgent(Agent):
         print(bestAction)
         self.rootNode = next_root
         return bestAction
-
-
-        # start a timer of 0.8s for simulation
-        try:
-            func_timeout.func_timeout(0.2, self.rootNode.MCTS)
-        except:
-            print("time out")
-            bestWinRate = 0
-            bestAction = None
-            next_root = None
-                    
-            for child in self.rootNode.child_nodes:
-                winRate = child.win_count/child.visited_count
-                if winRate >= bestWinRate:
-                    bestWinRate = winRate
-                    bestAction = child.actionTaken
-                    next_root = child
-
-            print("MCTS next move:")
-            print(bestAction)
-            self.rootNode = next_root
-            return bestAction
 
 
 class Node():
@@ -125,13 +130,13 @@ class Node():
 
     # a complete select&expand&simulate&back propagation, a looped in the choose best action method
     def MCTS(self):
-        # 1. select the leaf node with highest UCT
-        target_node = self.selection()
-        # 2. expand the target node
-        target_node.expand()
-        # 3. simulation
-        target_node.simulation()
-        return self
+        while True:
+            # 1. select the leaf node with highest UCT
+            target_node = self.selection()
+            # 2. expand the target node
+            target_node.expand()
+            # 3. simulation
+            target_node.simulation()
 
     # find the leaf of current tree with highest UCT
     def selection(self):
