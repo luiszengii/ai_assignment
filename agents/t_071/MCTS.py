@@ -1,6 +1,5 @@
 import numpy as np
 from multiprocessing import parent_process
-from xmlrpc.client import boolean
 from template import Agent
 import random
 from Reversi.reversi_model import ReversiGameRule
@@ -23,12 +22,12 @@ class myAgent(Agent):
         self.rootNode = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
         try:
             if isAtFirstMove:
-                func_timeout.func_timeout(0.9, self.rootNode.MCTS)
+                func_timeout.func_timeout(1, self.rootNode.MCTS)
             else:    
-                func_timeout.func_timeout(0.9, self.rootNode.MCTS)
+                func_timeout.func_timeout(0.85, self.rootNode.MCTS)
         except:
             pass
-        # choose the action results in highest win rate state
+        # choose the action results in highest (win rate + mobility) state
         bestWinRate = 0
         bestAction = None
         next_root = None
@@ -38,6 +37,7 @@ class myAgent(Agent):
             else:
                 if child.visited_count != 0:
                     winRate = child.win_count/child.visited_count
+                    winRate += child.mobilityHeuristic() * 0.3
                     if winRate >= bestWinRate:
                         bestWinRate = winRate
                         bestAction = child.actionTaken
@@ -64,7 +64,6 @@ class Node():
         while True:
             # select the leaf node with highest UCT
             target_node = self.selection()
-
             # if the target node has been visited, expand it, then select the first child to simulate then back propagate
             if target_node.visited_count != 0:
                 target_node.expand()
@@ -129,7 +128,7 @@ class Node():
             return new_node.random_result()
 
     # called by the target node that finised a simulation, updates all parents' win/visit count
-    def backPropagation(self, win: boolean):
+    def backPropagation(self, win):
         if self.parent_node == None:
             return
         if win:
@@ -140,8 +139,25 @@ class Node():
             self.parent_node.visited_count += 1
             return self.parent_node.backPropagation(win)
 
+    # calcualtes the mobility heuristic value of current state
+    def mobilityHeuristic(self):
+        agent_valid_moves = len(ReversiGameRule.getLegalActions(self, game_state=self.current_state, agent_id=self.player_id))
+        opponent_valid_moves = len(ReversiGameRule.getLegalActions(self, game_state=self.current_state, agent_id=((self.player_id+1)%2)))
+        value = 0
+        if (agent_valid_moves == 0 and opponent_valid_moves > 0):
+            value = -1
+        if (agent_valid_moves > 0 and opponent_valid_moves == 0):
+            value = 1
+        if(agent_valid_moves > opponent_valid_moves):
+            value = (agent_valid_moves)/(agent_valid_moves + opponent_valid_moves)
+        if(agent_valid_moves < opponent_valid_moves):
+            value = -(opponent_valid_moves)/(agent_valid_moves + opponent_valid_moves)
+        return value
+
 def UCT(node: Node):
+    # if the node is not visited give it highest priority
     if node.visited_count == 0:
         return float('inf')
-    value = (node.win_count / node.visited_count) + (1.3 * np.sqrt(node.parent_node.visited_count/node.visited_count))
+    # add the mobility to UCT value
+    value = (node.win_count / node.visited_count) + (1.3 * np.sqrt(node.parent_node.visited_count/node.visited_count)) + node.mobilityHeuristic() * 3
     return value
