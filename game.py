@@ -14,7 +14,7 @@ import traceback
 # CONSTANTS ----------------------------------------------------------------------------------------------------------#
 
 FREEDOM = True  #Whether or not to penalise agents for incorrect moves and timeouts. Useful for debugging.
-WARMUP  = 15000    #Warmup period (time given to each agent on their first turn).
+WARMUP  = 1500    #Warmup period (time given to each agent on their first turn).
 
 # CLASS DEF ----------------------------------------------------------------------------------------------------------#
 

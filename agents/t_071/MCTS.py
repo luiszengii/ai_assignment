@@ -57,47 +57,56 @@ class myAgent(Agent):
     def SelectAction(self,actions,game_state):
         # color info
         self.agent_colors = game_state.agent_colors
+        isAtFirstMove = (self.rootNode == None)
+
         self.getCurrentRoot(game_state)
 
-        # iterate MCTS for 3 times (for debugging)
-        for i in range(2):
-            self.rootNode = self.rootNode.MCTS()
+        # iterate MCTS for 3 times
+        if isAtFirstMove:
+            for i in range(10):
+                print("the first move MCTS")
+                self.rootNode = self.rootNode.MCTS()
+        else:
+            for i in range(2):
+                self.rootNode = self.rootNode.MCTS()
+        
         
         # return the action
         bestWinRate = 0
         bestAction = None
         next_root = None
-
-        # for child in self.rootNode.child_nodes:
-        #     if child.actionTaken == self.rootNode.actionTaken:
                 
-
         for child in self.rootNode.child_nodes:
             winRate = child.win_count/child.visited_count
             if winRate >= bestWinRate:
                 bestWinRate = winRate
                 bestAction = child.actionTaken
                 next_root = child
-        self.rootNode = next_root
 
-        # print('action', self.rootNode.player_id, self.rootNode.current_agent_index)
-        print("NEXT ACTION: ")
+        print("MCTS next move:")
         print(bestAction)
+        self.rootNode = next_root
         return bestAction
 
 
         # start a timer of 0.8s for simulation
-        # try:
-        #     func_timeout.func_timeout(800, root.MCTS())
-        # except func_timeout.FunctionTimedOut:
-        #     bestWinRate = 0
-        #     bestAction = None
-        #     for child in root.child_nodes:
-        #         winRate = child.win_count/child.visited_count
-        #         if winRate > bestWinRate:
-        #             bestWinRate = winRate
-        #             bestAction = child.actionTaken
-        #     return bestAction
+        try:
+            func_timeout.func_timeout(0.8, self.rootNode.MCTS)
+        except func_timeout.FunctionTimedOut:
+            print("time out")
+            bestWinRate = 0
+            bestAction = None
+            next_root = None
+                    
+            for child in self.rootNode.child_nodes:
+                winRate = child.win_count/child.visited_count
+                if winRate >= bestWinRate:
+                    bestWinRate = winRate
+                    bestAction = child.actionTaken
+                    next_root = child
+
+            self.rootNode = next_root
+            return bestAction
 
 
 class Node():
