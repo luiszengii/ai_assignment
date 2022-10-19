@@ -8,9 +8,6 @@ from Reversi.reversi_model import ReversiGameRule
 from Reversi.reversi_utils import Cell,filpColor,boardToString,countScore, GRID_SIZE
 import func_timeout
 
-# debugger
-import pdb
-
 class myAgent(Agent):
     def __init__(self,_id):
         super().__init__(_id)
@@ -64,12 +61,10 @@ class myAgent(Agent):
         # iterate MCTS for 3 times
         if isAtFirstMove:
             for i in range(10):
-                print("the first move MCTS")
                 self.rootNode = self.rootNode.MCTS()
         else:
             for i in range(2):
                 self.rootNode = self.rootNode.MCTS()
-        
         
         # return the action
         bestWinRate = 0
@@ -77,6 +72,8 @@ class myAgent(Agent):
         next_root = None
                 
         for child in self.rootNode.child_nodes:
+            if child.visited_count == 1:
+                pass
             winRate = child.win_count/child.visited_count
             if winRate >= bestWinRate:
                 bestWinRate = winRate
@@ -91,8 +88,8 @@ class myAgent(Agent):
 
         # start a timer of 0.8s for simulation
         try:
-            func_timeout.func_timeout(0.8, self.rootNode.MCTS)
-        except func_timeout.FunctionTimedOut:
+            func_timeout.func_timeout(0.2, self.rootNode.MCTS)
+        except:
             print("time out")
             bestWinRate = 0
             bestAction = None
@@ -105,6 +102,8 @@ class myAgent(Agent):
                     bestAction = child.actionTaken
                     next_root = child
 
+            print("MCTS next move:")
+            print(bestAction)
             self.rootNode = next_root
             return bestAction
 
