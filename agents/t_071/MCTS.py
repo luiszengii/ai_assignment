@@ -1,5 +1,4 @@
 import numpy as np
-from contextlib import nullcontext
 from multiprocessing import parent_process
 from xmlrpc.client import boolean
 from template import Agent
@@ -21,7 +20,16 @@ class myAgent(Agent):
             self.rootNode = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
         else:
             target_child = None
-            if len(self.rootNode.child_nodes) == 0:
+            for child in self.rootNode.child_nodes:
+                same_state = True
+                for x in self.validPos:
+                    if child.current_state.getCell(x) != game_state.getCell(x):
+                        same_state = False
+                        break
+                if same_state:
+                    target_child = child
+                    break
+            if target_child == None:
                 opp_actions = ReversiGameRule.getLegalActions(self, self.rootNode.current_state, self.rootNode.player_id)
                 for action in opp_actions:
                     next_state = ReversiGameRule.generateSuccessor(self, self.rootNode.current_state, action, self.rootNode.player_id)
@@ -33,21 +41,12 @@ class myAgent(Agent):
                     if same_state:
                         target_child = Node(self.rootNode.myAgent_id,(self.rootNode.player_id+1)%2, next_state, parent_node=None, actionTaken=action, validPos=self.rootNode.validPos, agent_colors=self.rootNode.agent_colors)
                         break
+                if target_child == None:
+                    target_child = Node(self.current_agent_index, self.current_agent_index, current_state=game_state, validPos=self.validPos, agent_colors=self.agent_colors)
                 
-                self.rootNode = target_child
-            else:
-                for child in self.rootNode.child_nodes:
-                    same_state = True
-                    for x in self.validPos:
-                        if child.current_state.getCell(x) != game_state.getCell(x):
-                            same_state = False
-                            break
-                    if same_state:
-                        target_child = child
-                        break
-                
-                self.rootNode = target_child
-                self.rootNode.parent_node = None
+                # self.rootNode = target_child
+            self.rootNode = target_child
+            self.rootNode.parent_node = None
 
 
     
@@ -101,11 +100,15 @@ class myAgent(Agent):
         next_root = None
                 
         for child in self.rootNode.child_nodes:
-            winRate = child.win_count/child.visited_count
-            if winRate >= bestWinRate:
-                bestWinRate = winRate
-                bestAction = child.actionTaken
-                next_root = child
+            if child.visited_count < 2 and child.win_count == 1:
+                 continue
+            else:
+                if child.visited_count != 0:
+                    winRate = child.win_count/child.visited_count
+                    if winRate >= bestWinRate:
+                        bestWinRate = winRate
+                        bestAction = child.actionTaken
+                        next_root = child
 
         print("MCTS next move:")
         print(bestAction)
